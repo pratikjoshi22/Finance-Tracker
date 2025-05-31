@@ -1,3 +1,8 @@
+# Add to .gitignore
+echo "application.properties" >> .gitignore
+git add .gitignore
+git commit -m "Ignore application.properties"
+
 HELP.md
 target/
 !.mvn/wrapper/maven-wrapper.jar
