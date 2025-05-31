@@ -1,7 +1,10 @@
 package com.financeapp.personalfinance.service;
 
 import com.financeapp.personalfinance.model.User;
+import com.financeapp.personalfinance.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -11,9 +14,10 @@ import java.util.concurrent.atomic.AtomicLong;
 @Service
 public class UserService {
 
+    @Autowired
+    private UserRepository userRepository;
     // In-memory storage (will be replaced with database in Phase 2)
-    private final Map<Long, User> users = new ConcurrentHashMap<>();
-    private final AtomicLong idGenerator = new AtomicLong(1);
+
 
     // Create a new user
     public User createUser(User user) {
@@ -30,38 +34,45 @@ public class UserService {
             throw new IllegalArgumentException("User with this email already exists");
         }
 
-        // Generate ID and save
-        user.setId(idGenerator.getAndIncrement());
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
 
-        users.put(user.getId(), user);
-        return user;
+        // Save user entity to DB — this assigns the ID automatically if annotated properly
+        return userRepository.save(user);
     }
 
     // Get user by ID
+    // Get user by ID
+    @Transactional(readOnly = true)
     public Optional<User> getUserById(Long id) {
-        return Optional.ofNullable(users.get(id));
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("User ID must be a positive number");
+        }
+        return userRepository.findById(id);
     }
+
 
     // Get user by email
+    @Transactional(readOnly = true)
     public Optional<User> getUserByEmail(String email) {
-        return users.values().stream()
-                .filter(user -> user.getEmail().equalsIgnoreCase(email))
-                .findFirst();
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("Email cannot be null or empty");
+        }
+        return userRepository.findByEmail(email.trim().toLowerCase());
     }
 
-    // Get all users
+    @Transactional(readOnly = true)
     public List<User> getAllUsers() {
-        return new ArrayList<>(users.values());
+        return userRepository.findAll();
     }
 
     // Update user
     public User updateUser(Long id, User updatedUser) {
-        User existingUser = users.get(id);
-        if (existingUser == null) {
-            throw new RuntimeException("User not found with id: " + id);
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("User ID must be a positive number");
         }
+        User existingUser = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
 
         // Check if email is being changed and new email already exists
         if (!existingUser.getEmail().equals(updatedUser.getEmail()) &&
@@ -76,31 +87,41 @@ public class UserService {
         existingUser.setPhoneNumber(updatedUser.getPhoneNumber());
         existingUser.setUpdatedAt(LocalDateTime.now());
 
-        return existingUser;
+        // Save and return updated user
+        return userRepository.save(existingUser);
     }
 
     // Delete user
     public boolean deleteUser(Long id) {
-        return users.remove(id) != null;
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("User ID must be a positive number");
+        }
+
+        if (userRepository.existsById(id)) {
+            userRepository.deleteById(id);
+            return true;
+        }
+        return false;
     }
 
-    // Check if email exists
-    private boolean emailExists(String email) {
-        return users.values().stream()
-                .anyMatch(user -> user.getEmail().equalsIgnoreCase(email));
+    @Transactional(readOnly = true)
+    public boolean emailExists(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            return false;
+        }
+        return userRepository.findByEmail(email.trim().toLowerCase()).isPresent();
     }
 
-    // Get total user count
+    @Transactional(readOnly = true)
     public long getUserCount() {
-        return users.size();
+        return userRepository.count();
     }
 
-    // Search users by name
-    public List<User> searchUsersByName(String searchTerm) {
-        return users.values().stream()
-                .filter(user ->
-                        user.getFirstName().toLowerCase().contains(searchTerm.toLowerCase()) ||
-                                user.getLastName().toLowerCase().contains(searchTerm.toLowerCase()))
-                .toList();
+    @Transactional(readOnly = true)
+    public List<User> searchByFirstName(String firstName) {
+        if (firstName == null || firstName.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+        return userRepository.findByFirstNameContainingIgnoreCase(firstName.trim());
     }
 }

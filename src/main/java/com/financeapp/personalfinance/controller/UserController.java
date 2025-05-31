@@ -1,5 +1,6 @@
 package com.financeapp.personalfinance.controller;
 
+import com.financeapp.personalfinance.dto.UserStats;
 import com.financeapp.personalfinance.model.User;
 import com.financeapp.personalfinance.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,11 +73,18 @@ public class UserController {
                 : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    // Search users by name
     @GetMapping("/search")
-    public ResponseEntity<List<User>> searchUsers(@RequestParam String name) {
-        List<User> users = userService.searchUsersByName(name);
-        return new ResponseEntity<>(users, HttpStatus.OK);
+    public ResponseEntity<List<User>> searchUsers(@RequestParam("firstName") String firstName) {
+
+        try {
+            List<User> users = userService.searchByFirstName(firstName);
+            return new ResponseEntity<>(users, HttpStatus.OK);
+        } catch (Exception e) {
+            // Log the exception
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+
     }
 
     // Get user statistics
@@ -87,16 +95,4 @@ public class UserController {
         return new ResponseEntity<>(stats, HttpStatus.OK);
     }
 
-    // Inner class for statistics
-    public static class UserStats {
-        private long totalUsers;
-
-        public long getTotalUsers() {
-            return totalUsers;
-        }
-
-        public void setTotalUsers(long totalUsers) {
-            this.totalUsers = totalUsers;
-        }
-    }
 }

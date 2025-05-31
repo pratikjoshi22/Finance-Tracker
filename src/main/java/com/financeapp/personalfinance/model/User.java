@@ -1,14 +1,44 @@
 package com.financeapp.personalfinance.model;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "users")
 public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @NotBlank(message = "First Name is Required")
+    @Size(min = 2,max = 50, message = "First name must be between 2 and 50 characters")
+    @Column(name = "first_name" , nullable = false, length = 50)
     private String firstName;
+
+    @NotBlank(message = "Last Name is Required")
+    @Size(min = 2,max = 50, message = "Last name must be between 2 and 50 characters")
+    @Column(name = "last_name" , nullable = false, length = 50)
     private String lastName;
+
+    @NotBlank(message = "Email is required")
+    @Email(message = "Email must be valid")
+    @Column(name = "email", nullable = false, unique = true)
     private String email;
+
+    @Pattern(regexp = "^\\+?[0-9\\-]+$", message = "Phone number must be valid")
+    @Column(name = "phone_number", length = 20)
     private String phoneNumber;
+
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     // Constructors
